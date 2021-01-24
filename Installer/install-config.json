@@ -1,0 +1,17 @@
+{
+  "application": {
+    "descriptorNamespacePrefix": "http://ed-fi.org/",
+    "includeSchoolYearInUpstreamRoute": "false",
+    "upstreamEdFiApiUrl": "https://api.ed-fi.org/v3.2.0/api/"
+  },
+  "webapi": {
+    "installationDirectory": "..\\AssessmentAPIBridge",
+    "iis": {
+      "appPoolUserDomain": "",
+      "appPoolUser": "",
+      "appPoolPassword": "",
+      "webApplicationName": "AssessmentAPIBridge",
+      "websitePort": 444
+    }
+  }
+}
