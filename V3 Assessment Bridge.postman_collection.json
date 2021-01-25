@@ -1,0 +1,1080 @@
+{
+	"info": {
+		"_postman_id": "8b0b678a-d64f-4be6-9b72-46ebe5bba712",
+		"name": "Ed-Fi Assessment API Bridge Tests",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "GetOAuthCode",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "0a0a46ea-7732-4037-9eb3-40d6d2c905ca",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ApiRootV25}}/oauth/authorize?Client_id={{Key}}&Response_type=code",
+					"host": [
+						"{{ApiRootV25}}"
+					],
+					"path": [
+						"oauth",
+						"authorize"
+					],
+					"query": [
+						{
+							"key": "Client_id",
+							"value": "{{Key}}"
+						},
+						{
+							"key": "Response_type",
+							"value": "code"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GetOAuthToken",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "c8d1d232-b15b-470c-bd4f-640bfa58386b",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"",
+							"",
+							"pm.test(\"Contains access_token\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property(\"access_token\");",
+							"    //Set value for access token",
+							"    pm.environment.set(\"Token_testRun\", jsonData.access_token);",
+							"});",
+							"",
+							"",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/x-www-form-urlencoded"
+					}
+				],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "Client_id",
+							"value": "{{Key}}",
+							"type": "text"
+						},
+						{
+							"key": "Client_secret",
+							"value": "{{Secret}}",
+							"type": "text"
+						},
+						{
+							"key": "Code",
+							"value": "{{OAuthCode}}",
+							"type": "text"
+						},
+						{
+							"key": "Grant_type",
+							"value": "authorization_code",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "{{ApiRootV25}}/oauth/token",
+					"host": [
+						"{{ApiRootV25}}"
+					],
+					"path": [
+						"oauth",
+						"token"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create an Assessment",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "27c94163-683a-4e1b-b5e5-e342359e122e",
+						"exec": [
+							"pm.test(\"Status code is 201\", function () {",
+							"    pm.response.to.have.status(201);",
+							"});",
+							"",
+							"var locationHeader;",
+							"pm.test(\"Location is present\", function () {",
+							"    pm.response.to.have.header(\"Location\");",
+							"    locationHeader = pm.response.headers.get(\"Location\");",
+							"    pm.environment.set(\"assessmentId_testRun\", _.last(locationHeader.split('/')));",
+							"});",
+							"",
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "20343058-678f-4334-a750-5f6395e131ab",
+						"exec": [
+							"   var uuid = require('uuid');",
+							"   pm.environment.set(\"assessmentIdentifier_testRun\", uuid.v4());",
+							"   pm.environment.set(\"assessmentNamespace_testRun\", \"http://ed-fi.org/Assessment/Assessment.xml\");",
+							"   pm.environment.set(\"assessmentCategoryDescriptor_testRun\", \"Benchmark test\");",
+							"   console.log( pm.environment.get(\"assessmentIdentifier_testRun\"));",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{Token_testRun}}"
+					},
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"assessmentFamilyReference\": {\n        \"title\": \"An assessment family.\",\n        \"link\": {\n            \"rel\": \"AssessmentFamily\",\n            \"href\": \"/assessmentFamilies?title=An+assessment+family.\"\n        }\n    },\n    \"identifier\": \"{{assessmentIdentifier_testRun}}\",\n    \"namespace\": \"{{assessmentNamespace_testRun}}\",\n    \"categoryDescriptor\": \"http://ed-fi.org/Descriptor/AssessmentCategoryDescriptor.xml/{{assessmentCategoryDescriptor_testRun}}\",\n    \"periodDescriptor\": \"uri://ed-fi.org/Descriptor/AssessmentPeriodDescriptor.xml/BOY\",\n    \"title\": \"Fourth and Fifth Grade Reading 1st Six Weeks 2012-2013\",\n    \"maxRawScore\": 20,\n    \"revisionDate\": \"2012-09-19T00:00:00\",\n    \"version\": 4765,\n    \"contentStandard\": {\n        \"title\": \"State Essential Knowledge and Skills and More\",\n        \"authors\": []\n    },\n    \"academicSubjects\": [\n        {\n            \"academicSubjectDescriptor\": \"http://ed-fi.org/Descriptor/AcademicSubjectDescriptor.xml/Fine and Performing Arts\"\n        }\n    ],\n    \"assessedGradeLevels\": [\n        {\n            \"gradeLevelDescriptor\": \"http://ed-fi.org/Descriptor/GradeLevelDescriptor.xml/Fifth grade\"\n        },\n        {\n            \"gradeLevelDescriptor\": \"http://ed-fi.org/Descriptor/GradeLevelDescriptor.xml/Fourth grade\"\n        }\n    ],\n    \"identificationCodes\": [\n        {\n            \"assessmentIdentificationSystemDescriptor\": \"http://ed-fi.org/Descriptor/AssessmentIdentificationSystemDescriptor.xml/Other\",\n            \"identificationCode\": \"c8b1e650-47fe-06f1-8801-01774fa357f2\"\n        },\n        {\n            \"assessmentIdentificationSystemDescriptor\": \"http://ed-fi.org/Descriptor/AssessmentIdentificationSystemDescriptor.xml/Test Contractor\",\n            \"identificationCode\": \"01774fa3-06f1-47fe-8801-c8b1e65057f2\"\n        }\n    ],\n    \"languages\": [],\n    \"performanceLevels\": [],\n    \"programs\": [],\n    \"scores\": [],\n    \"sections\": [\n        {\n            \"sectionReference\": {\n                \"classPeriodName\": \"02 - Traditional\",\n                \"classroomIdentificationCode\": \"220\",\n                \"localCourseCode\": \"ALG-1\",\n                \"schoolId\": 255901001,\n                \"schoolYear\": 2011,\n                \"sequenceOfCourse\": 1,\n                \"termDescriptor\": \"http://ed-fi.org/Descriptor/TermDescriptor.xml/Fall Semester\",\n                \"uniqueSectionCode\": \"25590100102Trad220ALG112011\",\n                \"link\": {\n                    \"rel\": \"Section\",\n                    \"href\": \"/sections?classPeriodName=02+-+Traditional&classroomIdentificationCode=220&localCourseCode=ALG-1&schoolId=255901001&schoolYear=2011&sequenceOfCourse=1&termDescriptor=http%3A%2F%2Fed-fi.org%2FDescriptor%2FTermDescriptor.xml%2FFall+Semester&uniqueSectionCode=25590100102Trad220ALG112011\"\n                }\n            }\n        }\n    ]\n}"
+				},
+				"url": {
+					"raw": "{{ApiUrlV25}}assessments",
+					"host": [
+						"{{ApiUrlV25}}assessments"
+					]
+				},
+				"description": "Retrieves resources based with paging capabilities (using the \"Get All\" pattern)."
+			},
+			"response": []
+		},
+		{
+			"name": "GetById Assessment",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "f85e382d-6b46-41a5-846a-7d33b4da88f7",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"verify assessment record\", () => {",
+							"    ",
+							"     var assessment = pm.response.json();",
+							"     pm.expect(assessment.id).to.equal(pm.environment.get(\"assessmentId_testRun\"));",
+							"     pm.expect(assessment.identifier).to.equal(pm.environment.get(\"assessmentIdentifier_testRun\"));",
+							"     pm.expect(assessment.namespace).to.equal(pm.environment.get(\"assessmentNamespace_testRun\"));",
+							"     ",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{Token_testRun}}"
+					}
+				],
+				"url": {
+					"raw": "{{ApiUrlV25}}assessments?id={{assessmentId_testRun}}",
+					"host": [
+						"{{ApiUrlV25}}assessments"
+					],
+					"query": [
+						{
+							"key": "id",
+							"value": "{{assessmentId_testRun}}"
+						}
+					]
+				},
+				"description": "Retrieves resources based with paging capabilities (using the \"Get All\" pattern)."
+			},
+			"response": []
+		},
+		{
+			"name": "GetByKey Assessments",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "927932cb-6ebf-45d1-a5a8-6375e18238e5",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"verify assessment record\", () => {",
+							"    ",
+							"     var assessment = pm.response.json();",
+							"     pm.expect(assessment.id).to.equal(pm.environment.get(\"assessmentId_testRun\"));",
+							"     pm.expect(assessment.identifier).to.equal(pm.environment.get(\"assessmentIdentifier_testRun\"));",
+							"     pm.expect(assessment.namespace).to.equal(pm.environment.get(\"assessmentNamespace_testRun\"));",
+							"     ",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{Token_testRun}}"
+					}
+				],
+				"url": {
+					"raw": "{{ApiUrlV25}}assessments?identifier={{assessmentIdentifier_testRun}}&namespace={{assessmentNamespace_testRun}}",
+					"host": [
+						"{{ApiUrlV25}}assessments"
+					],
+					"query": [
+						{
+							"key": "identifier",
+							"value": "{{assessmentIdentifier_testRun}}"
+						},
+						{
+							"key": "namespace",
+							"value": "{{assessmentNamespace_testRun}}"
+						}
+					]
+				},
+				"description": "Retrieves resources based with paging capabilities (using the \"Get All\" pattern)."
+			},
+			"response": []
+		},
+		{
+			"name": "GetByExample Assessments",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "927932cb-6ebf-45d1-a5a8-6375e18238e5",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"verify assessment record\", () => {",
+							"    var assessments = pm.response.json();",
+							"    pm.expect(assessments.length).to.be.above(0);",
+							"     ",
+							"    assessments.forEach(assessment =>  {",
+							"        pm.expect(assessment.categoryDescriptor).to.equal(pm.environment.get(\"assessmentCategoryDescriptor_testRun\"));",
+							"    });",
+							"    ",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "f395bb05-49c8-420e-8792-4f2429f4e9c4",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{Token_testRun}}"
+					}
+				],
+				"url": {
+					"raw": "{{ApiUrlV25}}assessments?categoryDescriptor={{assessmentCategoryDescriptor_testRun}}",
+					"host": [
+						"{{ApiUrlV25}}assessments"
+					],
+					"query": [
+						{
+							"key": "categoryDescriptor",
+							"value": "{{assessmentCategoryDescriptor_testRun}}"
+						}
+					]
+				},
+				"description": "Retrieves resources based with paging capabilities (using the \"Get All\" pattern)."
+			},
+			"response": []
+		},
+		{
+			"name": "GetAll Assessments",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "193e3156-ec2b-4d06-b30b-d02f011db7a7",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{Token_testRun}}"
+					}
+				],
+				"url": {
+					"raw": "{{ApiUrlV25}}assessments?limit=25",
+					"host": [
+						"{{ApiUrlV25}}assessments"
+					],
+					"query": [
+						{
+							"key": "limit",
+							"value": "25"
+						}
+					]
+				},
+				"description": "Retrieves resources based with paging capabilities (using the \"Get All\" pattern)."
+			},
+			"response": []
+		},
+		{
+			"name": "Create AssessmentIdentificationSystemDescriptors",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "972491d8-a220-487f-ac34-d7aa315dd5ec",
+						"exec": [
+							"pm.test(\"Status code is 201\", function () {",
+							"    pm.response.to.have.status(201);",
+							"});",
+							"",
+							"var locationHeader;",
+							"pm.test(\"Location is present\", function () {",
+							"    pm.response.to.have.header(\"Location\");",
+							"    locationHeader = pm.response.headers.get(\"Location\");",
+							"    pm.environment.set(\"assessmentIdentificationSystemDescriptorId_testRun\", _.last(locationHeader.split('/')));",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "350b6652-a0d4-4875-b1f4-e2a0d13ff4ba",
+						"exec": [
+							"   pm.environment.set(\"assessmentIdentificationSystemDescriptorCodeValue_testRun\", \"Test Value \" + _.random(1,100));",
+							"   pm.environment.set(\"assessmentIdentificationSystemDescriptorDescription_testRun\", \"Test Value\");",
+							"   console.log( pm.environment.get(\"assessmentIdentificationSystemDescriptorsCodeValue_testRun\"));",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{Token_testRun}}"
+					},
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "  {\r\n    \"codeValue\": \"{{assessmentIdentificationSystemDescriptorCodeValue_testRun}}\",\r\n    \"description\": \"{{assessmentIdentificationSystemDescriptorDescription_testRun}}\",\r\n    \"namespace\": \"http://ed-fi.org/Descriptor/AssessmentIdentificationSystemDescriptor.xml\",\r\n    \"shortDescription\": \"Test Value\",\r\n    \"assessmentIdentificationSystemType\": \"Test Contractor\"\r\n  }"
+				},
+				"url": {
+					"raw": "{{ApiUrlV25}}assessmentIdentificationSystemDescriptors",
+					"host": [
+						"{{ApiUrlV25}}assessmentIdentificationSystemDescriptors"
+					]
+				},
+				"description": "Retrieves resources based with paging capabilities (using the \"Get All\" pattern)."
+			},
+			"response": []
+		},
+		{
+			"name": "GetById AssessmentIdentificationSystemDescriptor",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "b5ca4a1b-772f-4cc2-964f-a68c7f5882ac",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"verify assessment record\", () => {",
+							"    ",
+							"     var assessmentIdentificationSystemDescriptor = pm.response.json();",
+							"     pm.expect(assessmentIdentificationSystemDescriptor.id).to.equal(pm.environment.get(\"assessmentIdentificationSystemDescriptorId_testRun\"));",
+							"     pm.expect(assessmentIdentificationSystemDescriptor.codeValue).to.equal(pm.environment.get(\"assessmentIdentificationSystemDescriptorCodeValue_testRun\"));",
+							"     pm.expect(assessmentIdentificationSystemDescriptor.description).to.equal(pm.environment.get(\"assessmentIdentificationSystemDescriptorDescription_testRun\"));",
+							"     pm.environment.set(\"assessmentIdentificationSystemDescriptorDescriptorId_testRun\", assessmentIdentificationSystemDescriptor.assessmentIdentificationSystemDescriptorId);",
+							"     ",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{Token_testRun}}"
+					}
+				],
+				"url": {
+					"raw": "{{ApiUrlV25}}assessmentIdentificationSystemDescriptors/{{assessmentIdentificationSystemDescriptorId_testRun}}",
+					"host": [
+						"{{ApiUrlV25}}assessmentIdentificationSystemDescriptors"
+					],
+					"path": [
+						"{{assessmentIdentificationSystemDescriptorId_testRun}}"
+					]
+				},
+				"description": "Retrieves resources based with paging capabilities (using the \"Get All\" pattern)."
+			},
+			"response": []
+		},
+		{
+			"name": "GetBykey AssessmentIdentificationSystemDescriptor",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "b5ca4a1b-772f-4cc2-964f-a68c7f5882ac",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"verify assessment record\", () => {",
+							"    ",
+							"     var assessmentIdentificationSystemDescriptor = pm.response.json();",
+							"     pm.expect(assessmentIdentificationSystemDescriptor.assessmentIdentificationSystemDescriptorId).to.equal(pm.environment.get(\"assessmentIdentificationSystemDescriptorDescriptorId_testRun\"));",
+							"     pm.expect(assessmentIdentificationSystemDescriptor.id).to.equal(pm.environment.get(\"assessmentIdentificationSystemDescriptorId_testRun\"));",
+							"     pm.expect(assessmentIdentificationSystemDescriptor.codeValue).to.equal(pm.environment.get(\"assessmentIdentificationSystemDescriptorCodeValue_testRun\"));",
+							"     pm.expect(assessmentIdentificationSystemDescriptor.description).to.equal(pm.environment.get(\"assessmentIdentificationSystemDescriptorDescription_testRun\"));",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{Token_testRun}}"
+					}
+				],
+				"url": {
+					"raw": "{{ApiUrlV25}}assessmentIdentificationSystemDescriptors?assessmentIdentificationSystemDescriptorId={{assessmentIdentificationSystemDescriptorDescriptorId_testRun}}",
+					"host": [
+						"{{ApiUrlV25}}assessmentIdentificationSystemDescriptors"
+					],
+					"query": [
+						{
+							"key": "assessmentIdentificationSystemDescriptorId",
+							"value": "{{assessmentIdentificationSystemDescriptorDescriptorId_testRun}}"
+						}
+					]
+				},
+				"description": "Retrieves resources based with paging capabilities (using the \"Get All\" pattern)."
+			},
+			"response": []
+		},
+		{
+			"name": "Update AssessmentIdentificationSystemDescriptor",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "1efbd000-2eaa-4eda-84d3-e0264558e3ab",
+						"exec": [
+							" pm.environment.set(\"assessmentIdentificationSystemDescriptorDescriptionUpdated_testRun\", \"Updated Test Value\");"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "3fab97f4-ef90-4259-b5bc-a071a3b8f04a",
+						"exec": [
+							"pm.test(\"Status code is 204\", function () {",
+							"    pm.response.to.have.status(204);",
+							"});",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{Token_testRun}}"
+					},
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "  {\r\n    \"codeValue\": \"{{assessmentIdentificationSystemDescriptorCodeValue_testRun}}\",\r\n    \"description\": \"{{assessmentIdentificationSystemDescriptorDescriptionUpdated_testRun}}\",\r\n    \"namespace\": \"http://ed-fi.org/Descriptor/AssessmentIdentificationSystemDescriptor.xml\",\r\n    \"shortDescription\": \"Test Value\",\r\n    \"assessmentIdentificationSystemType\": \"Test Contractor\"\r\n  }\r\n  "
+				},
+				"url": {
+					"raw": "{{ApiUrlV25}}assessmentIdentificationSystemDescriptors/{{assessmentIdentificationSystemDescriptorId_testRun}}",
+					"host": [
+						"{{ApiUrlV25}}assessmentIdentificationSystemDescriptors"
+					],
+					"path": [
+						"{{assessmentIdentificationSystemDescriptorId_testRun}}"
+					]
+				},
+				"description": "Retrieves resources based with paging capabilities (using the \"Get All\" pattern)."
+			},
+			"response": []
+		},
+		{
+			"name": "Delete AssessmentIdentificationSystemDescriptors",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "a6fd424f-ddc8-4a07-baa6-6bfdef4bb53d",
+						"exec": [
+							"pm.test(\"Status code is 204\", function () {",
+							"    pm.response.to.have.status(204);",
+							"});",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{Token_testRun}}"
+					},
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{ApiUrlV25}}assessmentIdentificationSystemDescriptors/{{assessmentIdentificationSystemDescriptorId_testRun}}",
+					"host": [
+						"{{ApiUrlV25}}assessmentIdentificationSystemDescriptors"
+					],
+					"path": [
+						"{{assessmentIdentificationSystemDescriptorId_testRun}}"
+					]
+				},
+				"description": "Retrieves resources based with paging capabilities (using the \"Get All\" pattern)."
+			},
+			"response": []
+		},
+		{
+			"name": "GetAll AssessmentIdentificationSystemDescriptors",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "8012a80e-5c80-4079-ada9-6e4ed9a8a560",
+						"exec": [
+							"pm.test(\"Status code is 200\", () => {",
+							"    pm.expect(pm.response.code).to.equal(200);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{Token_testRun}}"
+					}
+				],
+				"url": {
+					"raw": "{{ApiUrlV25}}assessmentIdentificationSystemDescriptors?limit=100",
+					"host": [
+						"{{ApiUrlV25}}assessmentIdentificationSystemDescriptors"
+					],
+					"query": [
+						{
+							"key": "limit",
+							"value": "100"
+						}
+					]
+				},
+				"description": "Retrieves resources based with paging capabilities (using the \"Get All\" pattern)."
+			},
+			"response": []
+		},
+		{
+			"name": "GetAll AdministrationEnvironmentTypes",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "275fe724-b7bd-44ea-b5c9-d5504a791333",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{Token_testRun}}"
+					}
+				],
+				"url": {
+					"raw": "{{ApiUrlV25}}administrationEnvironmentTypes?limit=100",
+					"host": [
+						"{{ApiUrlV25}}administrationEnvironmentTypes"
+					],
+					"query": [
+						{
+							"key": "limit",
+							"value": "100"
+						}
+					]
+				},
+				"description": "Retrieves resources based with paging capabilities (using the \"Get All\" pattern)."
+			},
+			"response": []
+		},
+		{
+			"name": "GetAll Sessions",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "6cbb97d9-cec1-415a-91bd-fa81741010f9",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{Token_testRun}}"
+					}
+				],
+				"url": {
+					"raw": "{{ApiUrlV25}}sessions?limit=25",
+					"host": [
+						"{{ApiUrlV25}}sessions"
+					],
+					"query": [
+						{
+							"key": "limit",
+							"value": "25"
+						}
+					]
+				},
+				"description": "Retrieves resources based with paging capabilities (using the \"Get All\" pattern)."
+			},
+			"response": []
+		},
+		{
+			"name": "GetAll AssessmentItems",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "655140a9-0045-4bbe-8bb0-97f4f3b61fca",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{Token_testRun}}"
+					}
+				],
+				"url": {
+					"raw": "{{ApiUrlV25}}assessmentItems?limit=25",
+					"host": [
+						"{{ApiUrlV25}}assessmentItems"
+					],
+					"query": [
+						{
+							"key": "limit",
+							"value": "25"
+						}
+					]
+				},
+				"description": "Retrieves resources based with paging capabilities (using the \"Get All\" pattern)."
+			},
+			"response": []
+		},
+		{
+			"name": "GetAll LearningStandards",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "69582d3d-b282-4fd4-ac98-bb3704de4b24",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{Token_testRun}}"
+					}
+				],
+				"url": {
+					"raw": "{{ApiUrlV25}}learningStandards?limit=25",
+					"host": [
+						"{{ApiUrlV25}}learningStandards"
+					],
+					"query": [
+						{
+							"key": "limit",
+							"value": "25"
+						}
+					]
+				},
+				"description": "Retrieves resources based with paging capabilities (using the \"Get All\" pattern)."
+			},
+			"response": []
+		},
+		{
+			"name": "GetAll LearningObjectives",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "aab6c20b-04f2-45f1-93bc-65a9e9856640",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{Token_testRun}}"
+					}
+				],
+				"url": {
+					"raw": "{{ApiUrlV25}}learningObjectives?limit=25",
+					"host": [
+						"{{ApiUrlV25}}learningObjectives"
+					],
+					"query": [
+						{
+							"key": "limit",
+							"value": "25"
+						}
+					]
+				},
+				"description": "Retrieves resources based with paging capabilities (using the \"Get All\" pattern)."
+			},
+			"response": []
+		},
+		{
+			"name": "GetAll ObjectiveAssessments",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "56a9e86b-c42a-497c-b7e2-58fc513690e2",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{Token_testRun}}"
+					}
+				],
+				"url": {
+					"raw": "{{ApiUrlV25}}objectiveAssessments?limit=25",
+					"host": [
+						"{{ApiUrlV25}}objectiveAssessments"
+					],
+					"query": [
+						{
+							"key": "limit",
+							"value": "25"
+						}
+					]
+				},
+				"description": "Retrieves resources based with paging capabilities (using the \"Get All\" pattern)."
+			},
+			"response": []
+		},
+		{
+			"name": "GetAll StudentAssessments",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "4ac5874e-ee6e-4acd-af38-ec911ab11c5a",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{Token_testRun}}"
+					}
+				],
+				"url": {
+					"raw": "{{ApiUrlV25}}studentAssessments?limit=25",
+					"host": [
+						"{{ApiUrlV25}}studentAssessments"
+					],
+					"query": [
+						{
+							"key": "limit",
+							"value": "25"
+						}
+					]
+				},
+				"description": "Retrieves resources based with paging capabilities (using the \"Get All\" pattern)."
+			},
+			"response": []
+		},
+		{
+			"name": "GetAll AcademicSubjectDescriptors",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "7064c225-c28c-4822-b42a-c36e35c024d1",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{Token_testRun}}"
+					}
+				],
+				"url": {
+					"raw": "{{ApiUrlV25}}academicSubjectDescriptors?limit=100",
+					"host": [
+						"{{ApiUrlV25}}academicSubjectDescriptors"
+					],
+					"query": [
+						{
+							"key": "limit",
+							"value": "100"
+						}
+					]
+				},
+				"description": "Retrieves resources based with paging capabilities (using the \"Get All\" pattern)."
+			},
+			"response": []
+		},
+		{
+			"name": "CleanUp Test Run",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "0a0a46ea-7732-4037-9eb3-40d6d2c905ca",
+						"exec": [
+							"cleanup();\r",
+							"\r",
+							"function cleanup() {\r",
+							"    const clean = _.keys(pm.environment.toObject());\r",
+							"   \r",
+							"    _.each(clean, (arrItem) => {\r",
+							"        if (arrItem.endsWith(\"_testRun\")) {\r",
+							"            pm.environment.unset(arrItem);\r",
+							"        }\r",
+							"    });\r",
+							"};\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ApiRootV25}}/oauth/authorize?Client_id={{Key}}&Response_type=code",
+					"host": [
+						"{{ApiRootV25}}"
+					],
+					"path": [
+						"oauth",
+						"authorize"
+					],
+					"query": [
+						{
+							"key": "Client_id",
+							"value": "{{Key}}"
+						},
+						{
+							"key": "Response_type",
+							"value": "code"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"protocolProfileBehavior": {}
+}
